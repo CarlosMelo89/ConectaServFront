@@ -1,46 +1,64 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/type';
-import { getToken } from '../services/authToken';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../navigation/type';
+import {getToken} from '../services/authToken';
+import {API_URL} from '../services/api';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'ClienteForm'>;
 };
 
-export default function ClienteFormScreen({ navigation }: Props) {
+export default function ClienteFormScreen({navigation}: Props) {
   const [cpf, setCpf] = useState('');
   const [telefone, setTelefone] = useState('');
   const [celular, setCelular] = useState('');
 
   const handleSubmit = async () => {
     try {
-        const token = await getToken();
-        if (!token) {
-          return Alert.alert('Erro', 'Token de autenticação não encontrado.');
-        }
-        
-        const response = await fetch('http://10.0.2.2:5000/cliente', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ cpf, telefone, celular }),
-        });        
+      const token = await getToken();
+      if (!token) {
+        return Alert.alert('Erro', 'Token de autenticação não encontrado.');
+      }
 
-      const resJson = await response.json();
+      const response = await fetch(`${API_URL}/cliente`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({cpf, telefone, celular}),
+      });
 
       if (!response.ok) {
-        return Alert.alert('Erro ao cadastrar cliente', resJson.mensagem || 'Erro desconhecido');
+        const texto = await response.text();
+        console.log('Erro no cadastro:', response.status, texto);
+
+        let mensagem = 'Erro desconhecido.';
+        if (texto) {
+          try {
+            const resJson = JSON.parse(texto);
+            mensagem = resJson?.mensagem || mensagem;
+          } catch {}
+        }
+
+        return Alert.alert('Erro ao cadastrar cliente', mensagem);
       }
 
       Alert.alert('Sucesso', 'Perfil de cliente cadastrado com sucesso!');
-        navigation.reset({
-            index: 0,
-            routes: [{ name: 'Home' }],
-        });
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'MainTabs'}],
+      });
     } catch (error) {
+      console.error('Erro ao cadastrar cliente:', error);
       Alert.alert('Erro', 'Erro de conexão com o servidor.');
     }
   };

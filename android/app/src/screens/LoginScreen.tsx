@@ -3,6 +3,8 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'reac
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/type';
 import { saveToken } from '../services/authToken';
+import { API_URL } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -14,27 +16,42 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://10.0.2.2:5000/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, senha }),
       });
-  
+
       if (!response.ok) {
-        const resJson = await response.json();
-        return Alert.alert('Erro ao entrar', resJson.mensagem || 'Verifique suas credenciais');
+        let mensagem = 'Verifique suas credenciais';
+        try {
+          const resJson = await response.json();
+          mensagem = resJson?.mensagem || mensagem;
+        } catch {}
+        return Alert.alert('Erro ao entrar', mensagem);
       }
-  
+
       const data = await response.json();
-  
-      await saveToken(data.token); // 🔐 salva o token localmente
-  
+      await saveToken(data.token);
+      await AsyncStorage.setItem('usuario', JSON.stringify(data.usuario)); // ✅ Novo
+
+      const stored = await AsyncStorage.getItem('auth_token');
+      console.log('Token salvo:', stored);
+
+      if (!stored) {
+        return Alert.alert('Erro', 'Token não pôde ser salvo.');
+      }
+
       Alert.alert('Sucesso', `Bem-vindo, ${data.usuario.nome}!`);
-      navigation.navigate('ChooseProfile');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'MainTabs' }],
+      });
     } catch (error) {
+      console.error('Erro ao conectar com a API:', error);
       Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
     }
-  };  
+  };
 
   return (
     <View style={styles.container}>

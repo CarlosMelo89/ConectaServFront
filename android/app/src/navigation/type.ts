@@ -5,5 +5,8 @@ export type RootStackParamList = {
   ChooseProfile: undefined;
   ClienteForm: undefined;
   PrestadorForm: undefined;
-  Home: undefined;
+  MainTabs: undefined;
+  PrestadorDetalhes: { prestador: any };
+  Splash: undefined;
+  Perfil: undefined;
 };
