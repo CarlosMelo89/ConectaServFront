@@ -11,7 +11,7 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/type';
 import { getToken } from '../services/authToken';
-import { API_URL } from '../services/api';
+import { api } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
@@ -40,52 +40,38 @@ export default function PrestadorFormScreen({ navigation }: Props) {
       }
 
       // 1. Cadastrar Prestador
-      const prestadorResponse = await fetch(`${API_URL}/prestador/cadastrar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ usuarioId: usuario.id }),
-      });
+      const prestadorRes = await api.post(
+        '/prestador/cadastrar',
+        { usuarioId: usuario.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      if (!prestadorResponse.ok) {
-        const erroTexto = await prestadorResponse.text();
-        return Alert.alert('Erro', erroTexto || 'Erro ao cadastrar prestador.');
-      }
-
-      const prestador = await prestadorResponse.json();
-      const prestadorId = prestador.id;
+      const prestadorId = prestadorRes.data.id;
 
       // 2. Cadastrar Empresa vinculada
-      const empresaResponse = await fetch(`${API_URL}/empresa`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      await api.post(
+        '/empresa',
+        {
           prestadorId,
           nome,
           razaoSocial,
           cnpj,
           fotoEstabelecimentoUrl,
           enderecoId: parseInt(enderecoId) || 0,
-        }),
-      });
-
-      if (!empresaResponse.ok) {
-        const erroEmpresa = await empresaResponse.text();
-        return Alert.alert('Erro', erroEmpresa || 'Erro ao cadastrar empresa.');
-      }
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       Alert.alert('Sucesso', 'Cadastro como prestador realizado!');
-      await AsyncStorage.setItem('ehPrestador', 'true'); // <- flag salva aqui
+      await AsyncStorage.setItem('ehPrestador', 'true');
       navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao cadastrar prestador e empresa:', error);
-      Alert.alert('Erro', 'Erro inesperado ao cadastrar.');
+      let mensagem = 'Erro inesperado ao cadastrar.';
+      if (error?.response?.data?.mensagem) {
+        mensagem = error.response.data.mensagem;
+      }
+      Alert.alert('Erro', mensagem);
     }
   };
 

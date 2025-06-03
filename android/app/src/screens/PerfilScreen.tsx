@@ -13,7 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { API_URL } from '../services/api';
+import { api } from '../services/api';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/type';
@@ -37,11 +37,8 @@ export default function PerfilScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      const unsubscribe = navigation.addListener('focus', () => {
-        carregarUsuario();
-      });
-      return unsubscribe;
-    }, [navigation])
+      carregarUsuario();
+    }, [])
   );
 
   const carregarUsuario = async () => {
@@ -52,53 +49,9 @@ export default function PerfilScreen() {
         setUsuario(usuarioLocal);
         if (usuarioLocal.fotoPerfilUrl) setFotoPerfil(usuarioLocal.fotoPerfilUrl);
 
-        const flag = await AsyncStorage.getItem('ehPrestador');
-        if (flag === 'true') {
-          setEhPrestador(true);
-          Animated.timing(badgeOpacity, {
-            toValue: 1,
-            duration: 600,
-            useNativeDriver: true,
-          }).start();
-          return;
-        }
-
-        await verificarSeEhPrestador(usuarioLocal.id);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar usuário:', error);
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  const verificarSeEhPrestador = async (usuarioId: number) => {
-    try {
-      const token = await AsyncStorage.getItem('auth_token');
-      if (!token) return;
-
-      const prestadoresResponse = await fetch(`${API_URL}/prestador/listar`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const prestadores = await prestadoresResponse.json();
-      const prestador = prestadores.find((p: any) => p.usuarioId === usuarioId);
-
-      if (!prestador) {
-        console.log('❌ Prestador não encontrado');
-        setEhPrestador(false);
-        return;
-      }
-
-      const empresaResponse = await fetch(`${API_URL}/empresa/prestador/${prestador.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (empresaResponse.ok) {
-        const texto = await empresaResponse.text();
         try {
-          const empresa = JSON.parse(texto);
-          if (empresa?.id) {
+          const res = await api.get(`/prestador/buscar-por-usuario/${usuarioLocal.id}`);
+          if (res.data?.id) {
             setEhPrestador(true);
             await AsyncStorage.setItem('ehPrestador', 'true');
             Animated.timing(badgeOpacity, {
@@ -107,21 +60,19 @@ export default function PerfilScreen() {
               useNativeDriver: true,
             }).start();
           } else {
-            console.log('⚠️ Empresa retornada mas sem ID válido');
             setEhPrestador(false);
+            await AsyncStorage.setItem('ehPrestador', 'false');
           }
-        } catch (e) {
-          console.log('⚠️ Erro ao converter JSON da empresa:', texto);
+        } catch (error) {
           setEhPrestador(false);
+          await AsyncStorage.setItem('ehPrestador', 'false');
         }
-      } else {
-        const erroTexto = await empresaResponse.text();
-        console.log(`❌ Erro ${empresaResponse.status}:`, erroTexto);
-        setEhPrestador(false);
       }
-    } catch (e) {
-      console.error('Erro ao verificar prestador:', e);
-      Alert.alert('Erro', 'Não foi possível verificar o status de prestador.');
+    } catch (error) {
+      console.error('Erro ao carregar usuário:', error);
+      setEhPrestador(false);
+    } finally {
+      setCarregando(false);
     }
   };
 

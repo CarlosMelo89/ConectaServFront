@@ -1,49 +1,41 @@
-import React, {useEffect, useState} from 'react';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import React, { useEffect, useState } from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import FavoritosScreen from '../screens/FavoritosScreen';
 import MeusServicosScreen from '../screens/MeusServicosScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {API_URL} from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
   const [ehPrestador, setEhPrestador] = useState(false);
+  const [carregado, setCarregado] = useState(false); // evita render antes da checagem
 
   useEffect(() => {
     const verificarSeEhPrestador = async () => {
       try {
-        const token = await AsyncStorage.getItem('auth_token');
-        const usuarioStr = await AsyncStorage.getItem('usuario');
-        const usuario = usuarioStr ? JSON.parse(usuarioStr) : null;
-
-        if (!token || !usuario?.id) return;
-
-        const response = await fetch(`${API_URL}/prestador/listar`, {
-          headers: {Authorization: `Bearer ${token}`},
-        });
-
-        const data = await response.json();
-
-        const encontrado = data.find(
-          (p: any) => Number(p.usuarioId) === Number(usuario.id),
-        );
-
-        setEhPrestador(!!encontrado);
+        const flag = await AsyncStorage.getItem('ehPrestador');
+        setEhPrestador(flag === 'true');
       } catch (error) {
-        console.error('Erro ao verificar prestador:', error);
+        console.error('Erro ao verificar flag de prestador:', error);
+        setEhPrestador(false);
+      } finally {
+        setCarregado(true);
       }
     };
 
     verificarSeEhPrestador();
   }, []);
 
+  if (!carregado) {
+    return null; // opcional: ou uma tela de loading temporária
+  }
+
   return (
     <Tab.Navigator
-      screenOptions={({route}) => ({
-        tabBarIcon: ({focused, color, size}) => {
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
           let iconName: string;
 
           if (route.name === 'Home') {
@@ -63,7 +55,8 @@ export default function BottomTabs() {
           borderTopWidth: 0,
         },
         headerShown: false,
-      })}>
+      })}
+    >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Favoritos" component={FavoritosScreen} />
       {ehPrestador && (

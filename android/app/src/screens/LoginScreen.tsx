@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'reac
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/type';
 import { saveToken } from '../services/authToken';
-import { API_URL } from '../services/api';
+import { api } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
@@ -16,24 +16,11 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, senha }),
-      });
+      const response = await api.post('/auth/login', { email, senha });
+      const data = response.data;
 
-      if (!response.ok) {
-        let mensagem = 'Verifique suas credenciais';
-        try {
-          const resJson = await response.json();
-          mensagem = resJson?.mensagem || mensagem;
-        } catch {}
-        return Alert.alert('Erro ao entrar', mensagem);
-      }
-
-      const data = await response.json();
       await saveToken(data.token);
-      await AsyncStorage.setItem('usuario', JSON.stringify(data.usuario)); // ✅ Novo
+      await AsyncStorage.setItem('usuario', JSON.stringify(data.usuario));
 
       const stored = await AsyncStorage.getItem('auth_token');
       console.log('Token salvo:', stored);
@@ -47,9 +34,13 @@ export default function LoginScreen({ navigation }: Props) {
         index: 0,
         routes: [{ name: 'MainTabs' }],
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao conectar com a API:', error);
-      Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+      let mensagem = 'Não foi possível conectar ao servidor.';
+      if (error?.response?.data?.mensagem) {
+        mensagem = error.response.data.mensagem;
+      }
+      Alert.alert('Erro ao entrar', mensagem);
     }
   };
 

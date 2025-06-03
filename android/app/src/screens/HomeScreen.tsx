@@ -14,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/type';
-import { mockData } from '../data/mockData';
+import { api } from '../services/api';
 
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -26,7 +26,7 @@ export default function HomeScreen() {
   useEffect(() => {
     carregarFavoritos();
     carregarFoto();
-    setDadosFiltrados(mockData);
+    buscarServicos();
   }, []);
 
   const carregarFavoritos = async () => {
@@ -42,6 +42,15 @@ export default function HomeScreen() {
   const carregarFoto = async () => {
     const foto = await AsyncStorage.getItem('foto_perfil');
     if (foto) setFotoPerfil(foto);
+  };
+
+  const buscarServicos = async () => {
+    try {
+      const res = await api.get('/servico');
+      setDadosFiltrados(res.data);
+    } catch (e) {
+      console.error('Erro ao carregar serviços:', e);
+    }
   };
 
   const toggleFavorito = async (id: string) => {
@@ -61,7 +70,7 @@ export default function HomeScreen() {
 
   const handleBuscar = (texto: string) => {
     setBusca(texto);
-    const filtrados = mockData.filter(
+    const filtrados = dadosFiltrados.filter(
       item =>
         item.nome.toLowerCase().includes(texto.toLowerCase()) ||
         item.categoria.toLowerCase().includes(texto.toLowerCase())
@@ -134,7 +143,7 @@ export default function HomeScreen() {
       <FlatList
         data={dadosFiltrados}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         numColumns={2}
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}

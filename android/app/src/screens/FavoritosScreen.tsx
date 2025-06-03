@@ -12,7 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/type';
-import { mockData } from '../data/mockData';
+import { api } from '../services/api';
 
 export default function FavoritosScreen() {
   const [prestadoresFavoritados, setPrestadoresFavoritados] = useState<any[]>([]);
@@ -21,9 +21,11 @@ export default function FavoritosScreen() {
   const carregarFavoritos = async () => {
     try {
       const json = await AsyncStorage.getItem('@favoritos');
-      const idsFavoritos = json ? JSON.parse(json) : [];
+      const idsFavoritos: string[] = json ? JSON.parse(json) : [];
 
-      const filtrados = mockData.filter(p => idsFavoritos.includes(p.id));
+      const res = await api.get('/servico');
+      const todosServicos = res.data;
+      const filtrados = todosServicos.filter((p: any) => idsFavoritos.includes(p.id.toString()));
       setPrestadoresFavoritados(filtrados);
     } catch (e) {
       console.error('Erro ao carregar favoritos', e);
@@ -58,7 +60,7 @@ export default function FavoritosScreen() {
       ) : (
         <FlatList
           data={prestadoresFavoritados}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 16 }}
         />

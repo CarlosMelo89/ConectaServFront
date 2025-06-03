@@ -6,8 +6,6 @@ import SplashScreen from '../screens/SplashScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import ChooseProfileScreen from '../screens/ChooseProfileScreen';
-import ClienteFormScreen from '../screens/ClienteFormScreen';
 import PrestadorFormScreen from '../screens/PrestadorFormScreen';
 import PrestadorDetalhesScreen from '../screens/PrestadorDetalhesScreen';
 import PerfilScreen from '../screens/PerfilScreen';
@@ -36,16 +34,6 @@ export default function RootStack() {
       <Stack.Screen
         name="Register"
         component={RegisterScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="ChooseProfile"
-        component={ChooseProfileScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="ClienteForm"
-        component={ClienteFormScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/type';
-import { API_URL } from '../services/api';
+import { api } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = {
@@ -32,40 +32,24 @@ export default function RegisterScreen({ navigation }: Props) {
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/registrar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome,
-          email,
-          senha,
-          cpf,
-          telefone,
-          celular,
-          enderecoId: 0,
-        }),
+      const response = await api.post('/auth/registrar', {
+        nome,
+        email,
+        senha,
+        cpf,
+        telefone,
+        celular,
+        enderecoId: 0,
       });
 
-      const resJson = await response.json();
-
-      if (!response.ok) {
-        const mensagem = resJson?.mensagem || 'Erro desconhecido.';
-        return Alert.alert('Erro no cadastro', mensagem);
-      }
-
+      const resJson = response.data;
       const usuarioId = resJson.usuario?.id || resJson.usuarioId || resJson.id;
 
-      // Criação automática do cliente
-      await fetch(`${API_URL}/cliente/cadastrar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          usuarioId,
-          enderecoId: 0,
-        }),
+      await api.post('/cliente/cadastrar', {
+        usuarioId,
+        enderecoId: 0,
       });
 
-      // Salvar o token e o usuário
       if (resJson.token) {
         await AsyncStorage.setItem('auth_token', resJson.token);
         await AsyncStorage.setItem('usuario', JSON.stringify(resJson.usuario));
@@ -84,10 +68,13 @@ export default function RegisterScreen({ navigation }: Props) {
           routes: [{ name: 'Login' }],
         });
       }
-
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao registrar:', error);
-      Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+      let mensagem = 'Não foi possível conectar ao servidor.';
+      if (error?.response?.data?.mensagem) {
+        mensagem = error.response.data.mensagem;
+      }
+      Alert.alert('Erro', mensagem);
     }
   };
 

@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {API_URL} from '../services/api';
+import { api } from '../services/api';
 
 export default function MeusServicosScreen() {
   const [servicos, setServicos] = useState<any[]>([]);
@@ -27,34 +27,18 @@ export default function MeusServicosScreen() {
       if (!token || !usuario?.id) return;
 
       // 1. Buscar prestadorId pelo usuarioId
-      const prestadorRes = await fetch(`${API_URL}/prestador/listar`, {
-        headers: {Authorization: `Bearer ${token}`},
-      });
-      const prestadores = await prestadorRes.json();
-      const prestador = prestadores.find(
-        (p: any) => p.usuarioId === usuario.id,
-      );
-      if (!prestador) return;
+      const prestadorRes = await api.get(`/prestador/buscar-por-usuario/${usuario.id}`);
+      const prestador = prestadorRes.data;
+      if (!prestador?.id) return;
 
       // 2. Buscar empresa vinculada
-      const empresaRes = await fetch(
-        `${API_URL}/empresa/prestador/${prestador.id}`,
-        {
-          headers: {Authorization: `Bearer ${token}`},
-        },
-      );
-      const empresa = await empresaRes.json();
+      const empresaRes = await api.get(`/empresa/prestador/${prestador.id}`);
+      const empresa = empresaRes.data;
       if (!empresa?.id) return;
 
       // 3. Buscar serviços da empresa
-      const servicosRes = await fetch(
-        `${API_URL}/servico/listar/${empresa.id}`,
-        {
-          headers: {Authorization: `Bearer ${token}`},
-        },
-      );
-      const lista = await servicosRes.json();
-      setServicos(lista);
+      const servicosRes = await api.get(`/servico/listar/${empresa.id}`);
+      setServicos(servicosRes.data);
     } catch (e) {
       console.error('Erro ao carregar serviços:', e);
     } finally {
@@ -62,7 +46,7 @@ export default function MeusServicosScreen() {
     }
   };
 
-  const renderItem = ({item}: {item: any}) => (
+  const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <Text style={styles.nome}>{item.nome}</Text>
       <Text style={styles.preco}>R$ {item.preco?.toFixed(2)}</Text>
@@ -78,9 +62,9 @@ export default function MeusServicosScreen() {
       ) : (
         <FlatList
           data={servicos}
-          keyExtractor={item => item.id.toString()}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
-          contentContainerStyle={{paddingBottom: 20}}
+          contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
     </SafeAreaView>
